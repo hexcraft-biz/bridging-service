@@ -4,11 +4,11 @@ networks:
   intranet:
 
 services:
-  bridging-service:
+  topic-management-service:
     build: 
       context: .
       dockerfile: ./Dockerfile
-    container_name: bridging-service
+    container_name: topic-management-service
     ports:
       - "9527:9527"
     env_file:

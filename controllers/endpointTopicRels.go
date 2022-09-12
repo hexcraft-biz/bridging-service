@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-sql-driver/mysql"
-	"github.com/hexcraft-biz/bridging-service/config"
-	"github.com/hexcraft-biz/bridging-service/models"
+	"github.com/hexcraft-biz/topic-management-service/config"
+	"github.com/hexcraft-biz/topic-management-service/models"
 	"github.com/hexcraft-biz/controller"
 	"github.com/hexcraft-biz/model"
 )

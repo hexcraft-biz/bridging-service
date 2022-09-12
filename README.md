@@ -1,4 +1,4 @@
-# Bridging Service
+# Topic Management Service
 
 ```sh
 # Prepare Mysql & Redis service

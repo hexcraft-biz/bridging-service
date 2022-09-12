@@ -1,4 +1,4 @@
-module github.com/hexcraft-biz/bridging-service
+module github.com/hexcraft-biz/topic-management-service
 
 go 1.17
 

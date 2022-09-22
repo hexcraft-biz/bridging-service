@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/hexcraft-biz/env"
 	envRedis "github.com/hexcraft-biz/env/redis"
@@ -12,6 +14,7 @@ import (
 //================================================================
 type Env struct {
 	*env.Prototype
+	GcpProjectID string
 }
 
 func FetchEnv() (*Env, error) {
@@ -19,7 +22,8 @@ func FetchEnv() (*Env, error) {
 		return nil, err
 	} else {
 		return &Env{
-			Prototype: e,
+			Prototype:    e,
+			GcpProjectID: os.Getenv("GCP_PROJECT_ID"),
 		}, nil
 	}
 }

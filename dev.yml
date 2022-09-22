@@ -16,8 +16,8 @@ services:
     restart: on-failure
     volumes:
       - type: bind
-        source: ../dev-20220601-chatisfy-e10563af21ae.json
-        target: /app/dev-20220601-chatisfy-e10563af21ae.json
+        source: ../credentials.json
+        target: /app/credentials.json
     depends_on:
       - bridging-db
       - redis

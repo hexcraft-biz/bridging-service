@@ -4,12 +4,13 @@ import (
 	"context"
 	"net/http"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
-	"github.com/hexcraft-biz/topic-management-service/config"
-	"github.com/hexcraft-biz/topic-management-service/models"
 	"github.com/hexcraft-biz/controller"
 	"github.com/hexcraft-biz/model"
+	"github.com/hexcraft-biz/topic-management-service/config"
+	"github.com/hexcraft-biz/topic-management-service/models"
 )
 
 type Topics struct {
@@ -98,7 +99,31 @@ func (ctrl *Topics) Create() gin.HandlerFunc {
 			return
 		}
 
+		ctx := context.Background()
+		client, err := pubsub.NewClient(ctx, ctrl.Config.Env.GcpProjectID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+
+		gcpTopic := client.Topic(params.Name)
+		if ok, err := gcpTopic.Exists(ctx); err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		} else if ok == false {
+			_, err := client.CreateTopic(ctx, params.Name)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+				return
+			}
+		}
+
 		if entityRes, err := models.NewTopicsTableEngine(ctrl.DB).Insert(params.Name); err != nil {
+			if err := client.Topic(params.Name).Delete(ctx); err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+				return
+			}
+
 			if myErr, ok := err.(*mysql.MySQLError); ok && myErr.Number == 1062 {
 				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": http.StatusText(http.StatusConflict)})
 				return
@@ -133,20 +158,40 @@ func (ctrl *Topics) Delete() gin.HandlerFunc {
 		} else if topic == nil {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": http.StatusText(http.StatusNotFound)})
 			return
-		} else if _, err := dbEngine.DeleteByID(req.ID); err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1451 {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": err.Error()})
-				return
-			} else {
+		} else {
+			ctx := context.Background()
+			client, err := pubsub.NewClient(ctx, ctrl.Config.Env.GcpProjectID)
+			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 				return
 			}
-		} else {
-			ctx := context.Background()
-			ctrl.Config.Redis.FlushDB(ctx)
 
-			c.AbortWithStatusJSON(http.StatusNoContent, gin.H{"message": http.StatusText(http.StatusNoContent)})
-			return
+			gcpTopic := client.Topic(topic.Name)
+			if ok, err := gcpTopic.Exists(ctx); err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+				return
+			} else if ok == true {
+				if err := gcpTopic.Delete(ctx); err != nil {
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+					return
+				}
+			}
+
+			if _, err := dbEngine.DeleteByID(req.ID); err != nil {
+				if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1451 {
+					c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": err.Error()})
+					return
+				} else {
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+					return
+				}
+			} else {
+				ctx := context.Background()
+				ctrl.Config.Redis.FlushDB(ctx)
+
+				c.AbortWithStatusJSON(http.StatusNoContent, gin.H{"message": http.StatusText(http.StatusNoContent)})
+				return
+			}
 		}
 	}
 }

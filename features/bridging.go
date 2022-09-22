@@ -2,9 +2,9 @@ package features
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/hexcraft-biz/feature"
 	"github.com/hexcraft-biz/topic-management-service/config"
 	"github.com/hexcraft-biz/topic-management-service/controllers"
-	"github.com/hexcraft-biz/feature"
 )
 
 func LoadBridging(e *gin.Engine, cfg *config.Config) {
